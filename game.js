@@ -54,6 +54,11 @@ const game = {
     previousMazeIndex: -1     // Previous maze to prevent immediate repeats
 };
 
+// Session tracking variables
+let sessionStartTime = null;
+let currentMazeStartTime = null;
+let sessionStarted = false;
+
 // ============================
 // LEVEL DESIGN
 // ============================
@@ -103,16 +108,20 @@ const MOVING_WALLS_DEF = [
 function init() {
     setupCanvas();
     
+    // Start session tracking
+    BestRunTracker.startSession();
+    sessionStarted = true;
+    sessionStartTime = Date.now();
+    
     // Validate maze pool before starting
     if (!validateMazePool()) {
         console.error('Maze pool validation failed. Some mazes may be invalid.');
     }
     
-    setupLevel();
-    setupMovingWalls();
+    selectAndLoadMaze();
     setupEventListeners();
     validateLevel();
-    updateMazeDisplay();
+    BestRunTracker.updateSessionDisplay();
     render();
 }
 
@@ -155,7 +164,16 @@ function setupLevel() {
     // Initialize player health to 5
     game.player.health = 5;
     
+    // Start timer for this maze
+    currentMazeStartTime = Date.now();
+    
     updateHealthDisplay();
+}
+
+function selectAndLoadMaze() {
+    setupLevel(); // This already calls selectMaze internally and sets currentMazeIndex
+    updateMazeDisplay();
+    render();
 }
 
 function setupMovingWalls() {
@@ -192,6 +210,9 @@ function setupEventListeners() {
     document.getElementById('resumeBtn').addEventListener('click', togglePause);
     document.getElementById('restartDeadBtn').addEventListener('click', restart);
     document.getElementById('playAgainBtn').addEventListener('click', playAgain);
+    document.getElementById('quitBtn').addEventListener('click', () => {
+        playAgain(); // Ends session and saves
+    });
 }
 
 // ============================
@@ -431,6 +452,15 @@ function updateTimerDisplay() {
 
     const timerStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(Math.floor(milliseconds / 10)).padStart(2, '0')}`;
     document.getElementById('timer').textContent = timerStr;
+    
+    // Update session time display
+    if (sessionStarted) {
+        const sessionElapsed = Date.now() - sessionStartTime;
+        const sessionTimeElement = document.getElementById('sessionTime');
+        if (sessionTimeElement) {
+            sessionTimeElement.textContent = `Session: ${BestRunTracker.formatTime(sessionElapsed)}`;
+        }
+    }
 }
 
 // ============================
@@ -500,6 +530,9 @@ function togglePause() {
 }
 
 function restart() {
+    // Record death
+    BestRunTracker.recordDeath();
+    
     // Close all overlays
     hideOverlay('pauseOverlay');
     hideOverlay('deadOverlay');
@@ -512,25 +545,34 @@ function restart() {
     game.attempts += 1;
     updateAttemptsDisplay();
 
-    setupLevel();
-    setupMovingWalls();
+    selectAndLoadMaze();
     updateTimerDisplay();
     updateHealthDisplay();
     render();
 }
 
 function playAgain() {
+    // End current session and save best run
+    BestRunTracker.endSession(true);
+    
+    // Reset UI and state
+    game.state = GAME_STATE.READY;
+    BestRunTracker.resetDisplay();
+    
     hideOverlay('winOverlay');
     stopTimer();
-    game.state = GAME_STATE.READY;
     game.timer.elapsed = 0;
     game.attempts = 1;
     updateAttemptsDisplay();
 
-    setupLevel();
-    setupMovingWalls();
+    selectAndLoadMaze();
     updateTimerDisplay();
     updateHealthDisplay();
+    
+    // Restart session tracking for new round
+    BestRunTracker.startSession();
+    sessionStartTime = Date.now();
+    
     render();
 }
 
@@ -542,12 +584,18 @@ function kill(reason) {
 }
 
 function win() {
-    game.state = GAME_STATE.WON;
-    stopTimer();
+    // Track maze completion
+    const mazeTime = Date.now() - currentMazeStartTime;
+    const heartsCollected = game.hearts.length === 2 ? 0 : 2 - game.hearts.length;
+    BestRunTracker.recordMazeCompletion(game.currentMazeIndex, mazeTime, heartsCollected);
 
-    const time = formatTime(game.timer.elapsed);
-    document.getElementById('winStats').textContent = `Time: ${time} | Attempts: ${game.attempts}`;
-    showOverlay('winOverlay');
+    // Update previous maze tracking for repeat prevention
+    game.previousMazeIndex = game.currentMazeIndex;
+
+    // Immediately load next maze (NO overlay, NO delay)
+    selectAndLoadMaze();
+    // Reset timer for next maze
+    currentMazeStartTime = Date.now();
 }
 
 function updateAttemptsDisplay() {

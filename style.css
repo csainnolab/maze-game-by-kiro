@@ -288,6 +288,18 @@ body {
     box-shadow: 0 6px 15px rgba(131, 56, 236, 0.5);
 }
 
+.quit-btn {
+    background: linear-gradient(135deg, var(--danger-color), #FF6B35);
+    border-color: var(--danger-color);
+    color: var(--text-bright);
+    box-shadow: 0 4px 10px rgba(251, 86, 7, 0.3);
+}
+
+.quit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(251, 86, 7, 0.5);
+}
+
 .action-btn:active {
     transform: translateY(0);
 }

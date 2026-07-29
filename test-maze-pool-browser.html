@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Pool Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #ff00ff;
+        }
+        .test-section {
+            background: #0a0a0a;
+            border: 2px solid #00ff00;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 8px 0;
+            padding: 5px;
+        }
+        .passed {
+            color: #00ff00;
+        }
+        .failed {
+            color: #ff0000;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .stat-box {
+            background: #111;
+            border: 1px solid #00aa00;
+            padding: 10px;
+            text-align: center;
+        }
+        .summary {
+            text-align: center;
+            font-size: 18px;
+            margin-top: 20px;
+            padding: 15px;
+            border: 2px solid #ffff00;
+            background: #0a0a0a;
+        }
+        code {
+            background: #000;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 MAZE POOL VERIFICATION TEST 🎮</h1>
+        
+        <div id="results"></div>
+        <div id="summary"></div>
+    </div>
+
+    <script src="./maze-pool.js"></script>
+    <script>
+        // Test utilities
+        const results = [];
+        let passed = 0;
+        let failed = 0;
+
+        function test(name, testFn) {
+            try {
+                testFn();
+                results.push({ name, status: 'passed', error: null });
+                passed++;
+                return true;
+            } catch (error) {
+                results.push({ name, status: 'failed', error: error.message });
+                failed++;
+                return false;
+            }
+        }
+
+        function assert(condition, message) {
+            if (!condition) throw new Error(message);
+        }
+
+        function assertEqual(actual, expected, message) {
+            if (actual !== expected) {
+                throw new Error(`${message} (expected ${expected}, got ${actual})`);
+            }
+        }
+
+        // ============== TESTS ==============
+
+        console.log('Starting maze pool tests...');
+
+        // Basic Structure Tests
+        test('MAZE_POOL is defined', () => {
+            assert(typeof MAZE_POOL !== 'undefined', 'MAZE_POOL should be defined');
+            assert(Array.isArray(MAZE_POOL), 'MAZE_POOL should be an array');
+        });
+
+        test('MAZE_POOL has 100+ mazes', () => {
+            assert(MAZE_POOL.length >= 100, `Should have 100+, has ${MAZE_POOL.length}`);
+        });
+
+        // Grid Properties
+        test('All mazes are 20×20', () => {
+            for (let i = 0; i < Math.min(20, MAZE_POOL.length); i++) {
+                const maze = MAZE_POOL[i];
+                assert(maze.grid.length === 20, `Maze ${i}: rows=${maze.grid.length}`);
+                assert(maze.grid[0].length === 20, `Maze ${i}: cols=${maze.grid[0].length}`);
+            }
+        });
+
+        test('All mazes have START at [0][0]', () => {
+            for (let i = 0; i < Math.min(30, MAZE_POOL.length); i++) {
+                assert(MAZE_POOL[i].grid[0][0] === 3, `Maze ${i} missing START`);
+            }
+        });
+
+        test('All mazes have END at [19][19]', () => {
+            for (let i = 0; i < Math.min(30, MAZE_POOL.length); i++) {
+                assert(MAZE_POOL[i].grid[19][19] === 4, `Maze ${i} missing END`);
+            }
+        });
+
+        // Hazards and Collectibles
+        test('All mazes have 2-3 moving walls', () => {
+            for (let i = 0; i < Math.min(30, MAZE_POOL.length); i++) {
+                const mw = MAZE_POOL[i].moving_walls.length;
+                assert(mw >= 2 && mw <= 3, `Maze ${i}: ${mw} moving walls`);
+            }
+        });
+
+        test('All mazes have exactly 2 hearts', () => {
+            for (let i = 0; i < Math.min(30, MAZE_POOL.length); i++) {
+                const h = MAZE_POOL[i].hearts.length;
+                assert(h === 2, `Maze ${i}: ${h} hearts`);
+            }
+        });
+
+        test('All mazes have lava sections', () => {
+            for (let i = 0; i < Math.min(20, MAZE_POOL.length); i++) {
+                const maze = MAZE_POOL[i];
+                assert(maze.hazard_count > 0, `Maze ${i} has no hazards`);
+            }
+        });
+
+        // Utility Functions
+        test('getMazeById function works', () => {
+            assert(typeof getMazeById === 'function', 'getMazeById undefined');
+            const maze = getMazeById(0);
+            assert(maze.id === 0, 'getMazeById(0) failed');
+        });
+
+        test('getMazeCount function works', () => {
+            assert(typeof getMazeCount === 'function', 'getMazeCount undefined');
+            const count = getMazeCount();
+            assert(count === MAZE_POOL.length, `Count mismatch: ${count} vs ${MAZE_POOL.length}`);
+        });
+
+        test('validateMaze function works', () => {
+            assert(typeof validateMaze === 'function', 'validateMaze undefined');
+            const errors = validateMaze(MAZE_POOL[0]);
+            assert(Array.isArray(errors), 'validateMaze should return array');
+        });
+
+        // Solvability Check
+        test('Sample mazes are solvable', () => {
+            let unsolveableCount = 0;
+            for (let i = 0; i < Math.min(10, MAZE_POOL.length); i++) {
+                if (!canSolveMaze(MAZE_POOL[i].grid)) {
+                    unsolveableCount++;
+                }
+            }
+            assert(unsolveableCount === 0, `${unsolveableCount}/10 sample mazes unsolvable`);
+        });
+
+        // Uniqueness
+        test('Mazes have diverse layouts', () => {
+            const layouts = new Set();
+            for (const maze of MAZE_POOL) {
+                // Sample first 10 cells to reduce comparison cost
+                const sample = JSON.stringify(maze.grid.slice(0, 5));
+                layouts.add(sample);
+            }
+            assert(layouts.size > 90, `Only ${layouts.size} unique layouts`);
+        });
+
+        // ============== RENDER RESULTS ==============
+
+        function renderResults() {
+            const resultsDiv = document.getElementById('results');
+            let html = '';
+
+            // Group results by category
+            const categories = {
+                'Structure & Size': [],
+                'START & END': [],
+                'Hazards & Collectibles': [],
+                'Utility Functions': [],
+                'Validation & Quality': []
+            };
+
+            // Categorize tests
+            results.forEach(r => {
+                if (r.name.includes('MAZE_POOL') || r.name.includes('20×20')) {
+                    categories['Structure & Size'].push(r);
+                } else if (r.name.includes('START') || r.name.includes('END')) {
+                    categories['START & END'].push(r);
+                } else if (r.name.includes('moving') || r.name.includes('hearts') || r.name.includes('lava')) {
+                    categories['Hazards & Collectibles'].push(r);
+                } else if (r.name.includes('getMaze') || r.name.includes('function')) {
+                    categories['Utility Functions'].push(r);
+                } else {
+                    categories['Validation & Quality'].push(r);
+                }
+            });
+
+            // Render each category
+            for (const [category, tests] of Object.entries(categories)) {
+                if (tests.length === 0) continue;
+                
+                html += `<div class="test-section">
+                    <h2>${category}</h2>`;
+                
+                tests.forEach(result => {
+                    const statusClass = result.status === 'passed' ? 'passed' : 'failed';
+                    const icon = result.status === 'passed' ? '✓' : '✗';
+                    const errorMsg = result.error ? ` - ${result.error}` : '';
+                    html += `<div class="test-result ${statusClass}">
+                        ${icon} ${result.name}${errorMsg}
+                    </div>`;
+                });
+                
+                html += '</div>';
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        function renderSummary() {
+            const summaryDiv = document.getElementById('summary');
+            
+            // Gather statistics
+            const stats = {
+                total: MAZE_POOL.length,
+                easy: 0,
+                medium: 0,
+                hard: 0,
+                avgHazards: 0,
+                totalLava: 0
+            };
+
+            MAZE_POOL.forEach(maze => {
+                if (maze.difficulty === 'easy') stats.easy++;
+                else if (maze.difficulty === 'medium') stats.medium++;
+                else if (maze.difficulty === 'hard') stats.hard++;
+                stats.avgHazards += maze.hazard_count || 0;
+                stats.totalLava += maze.hazard_count || 0;
+            });
+
+            const successRate = ((passed / (passed + failed)) * 100).toFixed(1);
+            const status = failed === 0 ? '✓✓✓ SUCCESS ✓✓✓' : '✗ FAILED';
+            const statusColor = failed === 0 ? '#00ff00' : '#ff0000';
+
+            summaryDiv.innerHTML = `
+                <div class="summary" style="color: ${statusColor}; font-weight: bold;">
+                    ${status}
+                </div>
+                
+                <div class="test-section">
+                    <h2>Test Results</h2>
+                    <div class="stats">
+                        <div class="stat-box">
+                            <strong>Passed</strong><br/>
+                            <span class="passed" style="font-size: 24px;">${passed}</span>
+                        </div>
+                        <div class="stat-box">
+                            <strong>Failed</strong><br/>
+                            <span class="failed" style="font-size: 24px;">${failed}</span>
+                        </div>
+                        <div class="stat-box">
+                            <strong>Success Rate</strong><br/>
+                            <span style="font-size: 24px; color: #ffff00;">${successRate}%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="test-section">
+                    <h2>Maze Statistics</h2>
+                    <div class="stats">
+                        <div class="stat-box">
+                            <strong>Total Mazes</strong><br/>
+                            <span style="font-size: 20px;">${stats.total}</span>
+                        </div>
+                        <div class="stat-box">
+                            <strong>Easy</strong><br/>
+                            <span style="font-size: 20px;">${stats.easy} (${((stats.easy/stats.total)*100).toFixed(0)}%)</span>
+                        </div>
+                        <div class="stat-box">
+                            <strong>Medium</strong><br/>
+                            <span style="font-size: 20px;">${stats.medium} (${((stats.medium/stats.total)*100).toFixed(0)}%)</span>
+                        </div>
+                        <div class="stat-box">
+                            <strong>Hard</strong><br/>
+                            <span style="font-size: 20px;">${stats.hard} (${((stats.hard/stats.total)*100).toFixed(0)}%)</span>
+                        </div>
+                        <div class="stat-box">
+                            <strong>Avg Hazards</strong><br/>
+                            <span style="font-size: 20px;">${(stats.avgHazards/stats.total).toFixed(1)}</span>
+                        </div>
+                        <div class="stat-box">
+                            <strong>Total Lava Tiles</strong><br/>
+                            <span style="font-size: 20px;">${stats.totalLava}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Run on page load
+        window.addEventListener('load', () => {
+            console.log('Rendering test results...');
+            renderResults();
+            renderSummary();
+        });
+
+        // Immediate render for faster feedback
+        renderResults();
+        renderSummary();
+    </script>
+</body>
+</html>

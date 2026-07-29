@@ -21,12 +21,16 @@
                     <span class="stat-value" id="timer">00:00.000</span>
                 </div>
                 <div class="stat">
-                    <span class="stat-label">ATTEMPTS</span>
-                    <span class="stat-value" id="attempts">1</span>
+                    <span class="stat-label">MAZES</span>
+                    <span class="stat-value" id="mazesCompleted">Mazes: 0</span>
                 </div>
                 <div class="stat">
-                    <span class="stat-label">MAZE</span>
-                    <span class="stat-value" id="mazeCounter">Maze 1 of 5</span>
+                    <span class="stat-label">SESSION</span>
+                    <span class="stat-value" id="sessionTime">Session: 00:00.000</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">BEST RUN</span>
+                    <span class="stat-value" id="bestRunStats">Best: -</span>
                 </div>
                 <div class="stat">
                     <span class="stat-label">HEALTH</span>
@@ -52,6 +56,7 @@
                     <div class="action-buttons">
                         <button class="action-btn pause-btn" id="pauseBtn" aria-label="Pause game">PAUSE</button>
                         <button class="action-btn restart-btn" id="restartBtn" aria-label="Restart level">RESTART</button>
+                        <button class="action-btn quit-btn" id="quitBtn" aria-label="Quit and save">💾 QUIT & SAVE</button>
                     </div>
 
                     <div class="instructions">
@@ -96,6 +101,8 @@
         </footer>
     </div>
 
+    <script src="./maze-pool.js"></script>
+    <script src="./best-run-tracker.js"></script>
     <script src="./game.js"></script>
 </body>
 </html>

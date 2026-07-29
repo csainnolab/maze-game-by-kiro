@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Best Run Tracker Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+        .pass {
+            background: #d4edda;
+            color: #155724;
+        }
+        .fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Best Run Tracker Tests</h1>
+    
+    <div class="test-section">
+        <div class="test-title">Session Tracking</div>
+        <button onclick="testSessionStart()">Test Session Start</button>
+        <button onclick="testMazeCompletion()">Test Maze Completion</button>
+        <button onclick="testSessionEnd()">Test Session End</button>
+        <div id="test1-results"></div>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">localStorage Persistence</div>
+        <button onclick="testSaveAndLoad()">Test Save & Load</button>
+        <button onclick="testClearStorage()">Clear Storage</button>
+        <div id="test2-results"></div>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Best Run Comparison</div>
+        <button onclick="testBestRunComparison()">Test Best Run Comparison</button>
+        <div id="test3-results"></div>
+    </div>
+
+    <div class="test-section">
+        <div class="test-title">Time Formatting</div>
+        <button onclick="testTimeFormatting()">Test Time Formatting</button>
+        <div id="test4-results"></div>
+    </div>
+
+    <script src="./best-run-tracker.js"></script>
+    <script>
+        function addResult(elementId, message, isPass) {
+            const div = document.getElementById(elementId);
+            const result = document.createElement('div');
+            result.className = 'result ' + (isPass ? 'pass' : 'fail');
+            result.textContent = message;
+            div.appendChild(result);
+        }
+
+        function testSessionStart() {
+            const resultsId = 'test1-results';
+            document.getElementById(resultsId).innerHTML = '';
+            
+            BestRunTracker.startSession();
+            const session = BestRunTracker.getCurrentSession();
+            
+            const hasStarted = session.started !== null;
+            const mazesZero = session.mazesCompleted === 0;
+            const mazeArrayEmpty = Array.isArray(session.mazes) && session.mazes.length === 0;
+            
+            addResult(resultsId, `Session started: ${hasStarted ? '✓' : '✗'}`, hasStarted);
+            addResult(resultsId, `Mazes completed starts at 0: ${mazesZero ? '✓' : '✗'}`, mazesZero);
+            addResult(resultsId, `Mazes array is empty: ${mazeArrayEmpty ? '✓' : '✗'}`, mazeArrayEmpty);
+        }
+
+        function testMazeCompletion() {
+            const resultsId = 'test1-results';
+            document.getElementById(resultsId).innerHTML = '';
+            
+            BestRunTracker.startSession();
+            BestRunTracker.recordMazeCompletion(1, 5000, 1, 2);
+            BestRunTracker.recordMazeCompletion(2, 4000, 2, 1);
+            
+            const session = BestRunTracker.getCurrentSession();
+            
+            const countCorrect = session.mazesCompleted === 2;
+            const timeCorrect = session.totalTime === 9000;
+            const bestTime = session.bestMazeTime === 4000;
+            const mazeCount = session.mazes.length === 2;
+            
+            addResult(resultsId, `Maze count incremented: ${countCorrect ? '✓' : '✗'}`, countCorrect);
+            addResult(resultsId, `Total time accumulated: ${timeCorrect ? '✓' : '✗'}`, timeCorrect);
+            addResult(resultsId, `Best time tracked: ${bestTime ? '✓' : '✗'}`, bestTime);
+            addResult(resultsId, `Mazes array populated: ${mazeCount ? '✓' : '✗'}`, mazeCount);
+        }
+
+        function testSessionEnd() {
+            const resultsId = 'test1-results';
+            document.getElementById(resultsId).innerHTML = '';
+            
+            BestRunTracker.startSession();
+            BestRunTracker.recordMazeCompletion(1, 5000, 1, 2);
+            const session = BestRunTracker.endSession(false);
+            
+            const hasEnded = session.ended !== null;
+            const mazesPreserved = session.mazesCompleted === 1;
+            
+            addResult(resultsId, `Session ended: ${hasEnded ? '✓' : '✗'}`, hasEnded);
+            addResult(resultsId, `Session stats preserved: ${mazesPreserved ? '✓' : '✗'}`, mazesPreserved);
+        }
+
+        function testSaveAndLoad() {
+            const resultsId = 'test2-results';
+            document.getElementById(resultsId).innerHTML = '';
+            
+            localStorage.clear();
+            BestRunTracker.startSession();
+            BestRunTracker.recordMazeCompletion(1, 5000, 1, 2);
+            BestRunTracker.endSession(true);
+            
+            const loaded = BestRunTracker.loadBestRun();
+            
+            const isSaved = loaded !== null;
+            const mazesMatch = loaded && loaded.mazesCompleted === 1;
+            const timeMatch = loaded && loaded.totalTime === 5000;
+            
+            addResult(resultsId, `Best run saved to localStorage: ${isSaved ? '✓' : '✗'}`, isSaved);
+            addResult(resultsId, `Mazes count preserved: ${mazesMatch ? '✓' : '✗'}`, mazesMatch);
+            addResult(resultsId, `Total time preserved: ${timeMatch ? '✓' : '✗'}`, timeMatch);
+        }
+
+        function testClearStorage() {
+            localStorage.clear();
+            addResult('test2-results', 'localStorage cleared', true);
+        }
+
+        function testBestRunComparison() {
+            const resultsId = 'test3-results';
+            document.getElementById(resultsId).innerHTML = '';
+            
+            localStorage.clear();
+            
+            // First session: 2 mazes in 10000ms
+            BestRunTracker.startSession();
+            BestRunTracker.recordMazeCompletion(1, 5000);
+            BestRunTracker.recordMazeCompletion(2, 5000);
+            BestRunTracker.endSession(true);
+            
+            const firstBest = BestRunTracker.loadBestRun();
+            
+            // Second session: 2 mazes in 8000ms (should update)
+            BestRunTracker.startSession();
+            BestRunTracker.recordMazeCompletion(3, 4000);
+            BestRunTracker.recordMazeCompletion(4, 4000);
+            BestRunTracker.endSession(true);
+            
+            const secondBest = BestRunTracker.loadBestRun();
+            
+            // Third session: 3 mazes (more mazes, should update)
+            BestRunTracker.startSession();
+            BestRunTracker.recordMazeCompletion(5, 3000);
+            BestRunTracker.recordMazeCompletion(6, 3000);
+            BestRunTracker.recordMazeCompletion(7, 3000);
+            BestRunTracker.endSession(true);
+            
+            const thirdBest = BestRunTracker.loadBestRun();
+            
+            const betterTime = secondBest.totalTime < firstBest.totalTime;
+            const moreMazes = thirdBest.mazesCompleted > secondBest.mazesCompleted;
+            
+            addResult(resultsId, `Better time updates best run: ${betterTime ? '✓' : '✗'}`, betterTime);
+            addResult(resultsId, `More mazes updates best run: ${moreMazes ? '✓' : '✗'}`, moreMazes);
+        }
+
+        function testTimeFormatting() {
+            const resultsId = 'test4-results';
+            document.getElementById(resultsId).innerHTML = '';
+            
+            const test1 = BestRunTracker.formatTime(0);
+            const test2 = BestRunTracker.formatTime(1234);
+            const test3 = BestRunTracker.formatTime(65432);
+            const test4 = BestRunTracker.formatTime(125000);
+            
+            const test1Pass = test1 === '00:00.000';
+            const test2Pass = test2 === '00:01.234';
+            const test3Pass = test3 === '01:05.432';
+            const test4Pass = test4 === '02:05.000';
+            
+            addResult(resultsId, `Format 0ms: "${test1}" ${test1Pass ? '✓' : '✗'}`, test1Pass);
+            addResult(resultsId, `Format 1234ms: "${test2}" ${test2Pass ? '✓' : '✗'}`, test2Pass);
+            addResult(resultsId, `Format 65432ms: "${test3}" ${test3Pass ? '✓' : '✗'}`, test3Pass);
+            addResult(resultsId, `Format 125000ms: "${test4}" ${test4Pass ? '✓' : '✗'}`, test4Pass);
+        }
+    </script>
+</body>
+</html>
