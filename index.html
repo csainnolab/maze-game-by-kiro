@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A retro arcade-style maze running game with moving walls and lava obstacles.">
+    <title>Maze Runner - Arcade Game</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="game-header">
+            <h1 class="game-title">🎮 MAZE RUNNER 🎮</h1>
+            <p class="game-subtitle">Navigate the labyrinth. Avoid the hazards. Reach the end.</p>
+        </header>
+
+        <main class="game-area">
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-label">TIME</span>
+                    <span class="stat-value" id="timer">00:00.000</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">ATTEMPTS</span>
+                    <span class="stat-value" id="attempts">1</span>
+                </div>
+            </div>
+
+            <section class="game-container">
+                <div class="canvas-wrapper">
+                    <canvas id="gameCanvas"></canvas>
+                </div>
+
+                <aside class="controls-panel">
+                    <h2 class="controls-title">Controls</h2>
+                    
+                    <div class="button-grid">
+                        <button class="direction-btn up-btn" aria-label="Move up" data-direction="UP">↑</button>
+                        <button class="direction-btn left-btn" aria-label="Move left" data-direction="LEFT">←</button>
+                        <button class="direction-btn down-btn" aria-label="Move down" data-direction="DOWN">↓</button>
+                        <button class="direction-btn right-btn" aria-label="Move right" data-direction="RIGHT">→</button>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="action-btn pause-btn" id="pauseBtn" aria-label="Pause game">PAUSE</button>
+                        <button class="action-btn restart-btn" id="restartBtn" aria-label="Restart level">RESTART</button>
+                    </div>
+
+                    <div class="instructions">
+                        <h3>How to Play</h3>
+                        <ul>
+                            <li><strong>Move:</strong> W/A/S/D or Arrow Keys</li>
+                            <li><strong>Pause:</strong> ESC or Pause Button</li>
+                            <li><strong>Restart:</strong> R or Restart Button</li>
+                            <li><strong>Avoid:</strong> Walls 🧱, Lava 🔥, Moving Walls 👻</li>
+                            <li><strong>Reach:</strong> The golden exit 🎯</li>
+                        </ul>
+                    </div>
+                </aside>
+            </section>
+
+            <div class="overlay" id="pauseOverlay">
+                <div class="overlay-content">
+                    <h2>PAUSED</h2>
+                    <button class="overlay-btn" id="resumeBtn">Resume</button>
+                </div>
+            </div>
+
+            <div class="overlay" id="deadOverlay">
+                <div class="overlay-content">
+                    <h2>💀 YOU DIED 💀</h2>
+                    <p id="deathMessage"></p>
+                    <button class="overlay-btn" id="restartDeadBtn">Try Again</button>
+                </div>
+            </div>
+
+            <div class="overlay" id="winOverlay">
+                <div class="overlay-content">
+                    <h2>🎉 YOU WON! 🎉</h2>
+                    <p id="winStats"></p>
+                    <button class="overlay-btn" id="playAgainBtn">Play Again</button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="game-footer">
+            <p>Made with 💚 using Kiro • <a href="./README.md">Documentation</a></p>
+        </footer>
+    </div>
+
+    <script src="./game.js"></script>
+</body>
+</html>
