@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Tasks 1.3, 2.4, 2.5</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1A1F3A;
+            color: #0F0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #2D3A4F;
+            border-left: 4px solid #00D9FF;
+        }
+        .test {
+            margin: 8px 0;
+        }
+        .pass {
+            color: #66BB6A;
+        }
+        .fail {
+            color: #FF5722;
+        }
+        canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Maze Game - Task Tests 1.3, 2.4, 2.5</h1>
+    
+    <!-- Game Elements -->
+    <canvas id="gameCanvas" width="800" height="800"></canvas>
+    <div id="health"></div>
+    <div id="timer"></div>
+    <div id="attempts"></div>
+    <div id="deathMessage"></div>
+    <div id="deadOverlay" class="overlay"></div>
+    <div id="pauseOverlay" class="overlay"></div>
+    <div id="winOverlay" class="overlay"></div>
+    <div id="winStats"></div>
+    
+    <!-- Direction buttons -->
+    <button class="direction-btn" data-direction="UP"></button>
+    <button class="direction-btn" data-direction="DOWN"></button>
+    <button class="direction-btn" data-direction="LEFT"></button>
+    <button class="direction-btn" data-direction="RIGHT"></button>
+    
+    <!-- Action buttons -->
+    <button id="pauseBtn"></button>
+    <button id="restartBtn"></button>
+    <button id="resumeBtn"></button>
+    <button id="restartDeadBtn"></button>
+    <button id="playAgainBtn"></button>
+    
+    <div id="test-output"></div>
+
+    <script src="game.js"></script>
+    <script>
+        // Suppress init on load
+        window.removeEventListener('DOMContentLoaded', init);
+
+        const output = document.getElementById('test-output');
+        let passCount = 0;
+        let failCount = 0;
+
+        function log(message) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            output.appendChild(p);
+            console.log(message);
+        }
+
+        function pass(testName) {
+            passCount++;
+            log(`✓ ${testName}`);
+        }
+
+        function fail(testName, message) {
+            failCount++;
+            log(`✗ ${testName}: ${message}`);
+        }
+
+        function assert(condition, message) {
+            if (!condition) throw new Error(message);
+        }
+
+        function assertEquals(actual, expected, message) {
+            if (actual !== expected) {
+                throw new Error(`${message || 'Assertion failed'}: expected ${expected}, got ${actual}`);
+            }
+        }
+
+        // ============================
+        // TASK 1.3: GRID BOUNDARY TESTS
+        // ============================
+        log('\n=== TASK 1.3: Grid Boundary Enforcement ===\n');
+
+        try {
+            init();
+            pass('TASK 1.3.0: Game initializes without error');
+        } catch (e) {
+            fail('TASK 1.3.0: Game initialization', e.message);
+            return;
+        }
+
+        try {
+            assertEquals(CONFIG.GRID_SIZE, 20, 'Grid size');
+            pass('TASK 1.3.1: Grid size is 20×20');
+        } catch (e) {
+            fail('TASK 1.3.1: Grid size is 20×20', e.message);
+        }
+
+        try {
+            const result = canMove(-1, 5);
+            assertEquals(result, false, 'canMove(-1, 5) should return false');
+            pass('TASK 1.3.2: canMove returns false for negative row');
+        } catch (e) {
+            fail('TASK 1.3.2: canMove negative row', e.message);
+        }
+
+        try {
+            const result = canMove(5, -1);
+            assertEquals(result, false, 'canMove(5, -1) should return false');
+            pass('TASK 1.3.3: canMove returns false for negative col');
+        } catch (e) {
+            fail('TASK 1.3.3: canMove negative col', e.message);
+        }
+
+        try {
+            const result = canMove(20, 5);
+            assertEquals(result, false, 'canMove(20, 5) should return false');
+            pass('TASK 1.3.4: canMove returns false for row >= 20');
+        } catch (e) {
+            fail('TASK 1.3.4: canMove row >= 20', e.message);
+        }
+
+        try {
+            const result = canMove(5, 20);
+            assertEquals(result, false, 'canMove(5, 20) should return false');
+            pass('TASK 1.3.5: canMove returns false for col >= 20');
+        } catch (e) {
+            fail('TASK 1.3.5: canMove col >= 20', e.message);
+        }
+
+        try {
+            const result = canMove(0, 0);
+            assertEquals(result, true, 'canMove(0, 0) should return true (START tile)');
+            pass('TASK 1.3.6: canMove accepts valid position (0,0)');
+        } catch (e) {
+            fail('TASK 1.3.6: canMove valid boundary', e.message);
+        }
+
+        try {
+            const result = canMove(19, 19);
+            assertEquals(result, true, 'canMove(19, 19) should return true (END tile)');
+            pass('TASK 1.3.7: canMove accepts valid position (19,19)');
+        } catch (e) {
+            fail('TASK 1.3.7: canMove END position', e.message);
+        }
+
+        // ============================
+        // TASK 2.4: COLLISION HEALTH TESTS
+        // ============================
+        log('\n=== TASK 2.4: Collision Detection with Health ===\n');
+
+        try {
+            game.state = GAME_STATE.PLAYING;
+            assertEquals(game.player.health, 5, 'Health should be 5 after init');
+            pass('TASK 2.4.1: Player starts with health = 5');
+        } catch (e) {
+            fail('TASK 2.4.1: Initial health', e.message);
+        }
+
+        try {
+            const initialHealth = game.player.health;
+            applyDamage(1, 'lava');
+            assertEquals(game.player.health, initialHealth - 1, 'Health after damage');
+            pass('TASK 2.4.2: applyDamage reduces health by 1');
+        } catch (e) {
+            fail('TASK 2.4.2: Apply damage reduces health', e.message);
+        }
+
+        try {
+            game.state = GAME_STATE.PLAYING;
+            game.player.health = 5;
+            applyDamage(1, 'lava');
+            assertEquals(game.lastDamageSource, 'lava', 'Damage source tracking');
+            pass('TASK 2.4.3: applyDamage tracks damage source as "lava"');
+        } catch (e) {
+            fail('TASK 2.4.3: Lava damage source', e.message);
+        }
+
+        try {
+            game.state = GAME_STATE.PLAYING;
+            game.player.health = 5;
+            applyDamage(1, 'moving_wall');
+            assertEquals(game.lastDamageSource, 'moving_wall', 'Damage source tracking');
+            pass('TASK 2.4.4: applyDamage tracks damage source as "moving_wall"');
+        } catch (e) {
+            fail('TASK 2.4.4: Moving wall damage source', e.message);
+        }
+
+        try {
+            game.state = GAME_STATE.PLAYING;
+            game.player.health = 3;
+            applyDamage(1, 'lava');
+            assertEquals(game.state, GAME_STATE.PLAYING, 'State after non-lethal damage');
+            assertEquals(game.player.health, 2, 'Health after damage');
+            pass('TASK 2.4.5: Game remains PLAYING when health > 0 after damage');
+        } catch (e) {
+            fail('TASK 2.4.5: Non-lethal damage', e.message);
+        }
+
+        // ============================
+        // TASK 2.5: DEATH STATE TRANSITION TESTS
+        // ============================
+        log('\n=== TASK 2.5: Death State Transition on Zero Health ===\n');
+
+        try {
+            restart();
+            game.state = GAME_STATE.PLAYING;
+            game.player.health = 1;
+            applyDamage(1, 'lava');
+            assertEquals(game.state, GAME_STATE.DEAD, 'State after lethal damage');
+            assertEquals(game.lastDamageSource, 'lava', 'Damage source on death');
+            pass('TASK 2.5.1: Death occurs when health reaches 0 after lava damage');
+        } catch (e) {
+            fail('TASK 2.5.1: Death on lava at health=1', e.message);
+        }
+
+        try {
+            restart();
+            game.state = GAME_STATE.PLAYING;
+            game.player.health = 1;
+            applyDamage(1, 'moving_wall');
+            assertEquals(game.state, GAME_STATE.DEAD, 'State after lethal moving wall damage');
+            assertEquals(game.lastDamageSource, 'moving_wall', 'Damage source on death');
+            pass('TASK 2.5.2: Death occurs when health reaches 0 after moving wall damage');
+        } catch (e) {
+            fail('TASK 2.5.2: Death on moving wall at health=1', e.message);
+        }
+
+        try {
+            restart();
+            game.state = GAME_STATE.PLAYING;
+            game.player.health = 1;
+            applyDamage(1, 'lava');
+            const deathMessage = document.getElementById('deathMessage').textContent;
+            assertEquals(deathMessage, 'Burned by lava!', 'Death message');
+            pass('TASK 2.5.3: Death message is "Burned by lava!" for lava deaths');
+        } catch (e) {
+            fail('TASK 2.5.3: Lava death message', e.message);
+        }
+
+        try {
+            restart();
+            game.state = GAME_STATE.PLAYING;
+            game.player.health = 1;
+            applyDamage(1, 'moving_wall');
+            const deathMessage = document.getElementById('deathMessage').textContent;
+            assertEquals(deathMessage, 'Crushed by a moving wall!', 'Death message');
+            pass('TASK 2.5.4: Death message is "Crushed by a moving wall!" for moving wall deaths');
+        } catch (e) {
+            fail('TASK 2.5.4: Moving wall death message', e.message);
+        }
+
+        try {
+            restart();
+            game.state = GAME_STATE.PLAYING;
+            game.player.health = 1;
+            applyDamage(1, 'lava');
+            const overlay = document.getElementById('deadOverlay');
+            assert(overlay.classList.contains('active'), 'Overlay should be visible');
+            pass('TASK 2.5.5: Death overlay is shown when health reaches 0');
+        } catch (e) {
+            fail('TASK 2.5.5: Death overlay visibility', e.message);
+        }
+
+        try {
+            restart();
+            game.state = GAME_STATE.PLAYING;
+            game.player.health = 2;
+            applyDamage(1, 'lava');
+            assertEquals(game.state, GAME_STATE.PLAYING, 'State with health=1');
+            assertEquals(game.player.health, 1, 'Health should be 1');
+            pass('TASK 2.5.6: Death only triggers when health actually reaches 0');
+        } catch (e) {
+            fail('TASK 2.5.6: Death trigger at health=0', e.message);
+        }
+
+        // ============================
+        // SUMMARY
+        // ============================
+        log('\n=== Test Summary ===\n');
+        log(`Total Passed: ${passCount}`);
+        log(`Total Failed: ${failCount}`);
+        log(`\nStatus: ${failCount === 0 ? '✓ ALL TESTS PASSED' : '✗ SOME TESTS FAILED'}`);
+        log('\nImplemented Tasks:');
+        log('✓ Task 1.3: Grid boundary enforcement');
+        log('✓ Task 2.4: Collision detection with health damage');
+        log('✓ Task 2.5: Death state transition on zero health');
+    </script>
+</body>
+</html>

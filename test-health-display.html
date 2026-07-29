@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Display Update Function Test</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="game-header">
+            <h1 class="game-title">🎮 HEALTH DISPLAY TEST 🎮</h1>
+        </header>
+
+        <main class="game-area">
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-label">HEALTH</span>
+                    <span class="stat-value health-display" id="health">❤️❤️❤️❤️❤️</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">TIME</span>
+                    <span class="stat-value" id="timer">00:00.00</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">ATTEMPTS</span>
+                    <span class="stat-value" id="attempts">1</span>
+                </div>
+            </div>
+
+            <section id="test-results" style="padding: 20px; background: #2D3A4F; border-radius: 8px; margin: 20px; font-family: monospace; color: #00FF00;">
+                <h2>Test Results</h2>
+                <div id="test-output"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="./game.js"></script>
+    <script>
+        // Test Suite for updateHealthDisplay()
+        const testResults = [];
+        
+        function addTest(name, passed, details = '') {
+            testResults.push({ name, passed, details });
+            const status = passed ? '✓ PASS' : '✗ FAIL';
+            const color = passed ? '#00FF00' : '#FF0000';
+            console.log(`${status}: ${name}`);
+            if (details) console.log(`  ${details}`);
+        }
+        
+        function runTests() {
+            console.log('=== Health Display Update Function Tests ===\n');
+            
+            // Test 1: Function exists
+            const functionExists = typeof updateHealthDisplay === 'function';
+            addTest('Test 1: updateHealthDisplay() function exists', functionExists);
+            
+            // Test 2: Health initialized to 5 on setupLevel
+            const initialHealth = game.player.health === 5;
+            addTest('Test 2: Player health initialized to 5', initialHealth, `game.player.health = ${game.player.health}`);
+            
+            // Test 3: Health display shows 5 filled hearts on init
+            const healthDisplay = document.getElementById('health').textContent;
+            const filledHearts = (healthDisplay.match(/❤️/g) || []).length;
+            const emptyHearts = (healthDisplay.match(/🤍/g) || []).length;
+            const correctInit = filledHearts === 5 && emptyHearts === 0;
+            addTest('Test 3: Display shows 5 filled hearts on init', correctInit, 
+                `Filled: ${filledHearts}, Empty: ${emptyHearts}`);
+            
+            // Test 4: Reduce health and verify display updates
+            game.player.health = 3;
+            updateHealthDisplay();
+            const health3Display = document.getElementById('health').textContent;
+            const filled3 = (health3Display.match(/❤️/g) || []).length;
+            const empty3 = (health3Display.match(/🤍/g) || []).length;
+            const correct3 = filled3 === 3 && empty3 === 2;
+            addTest('Test 4: Display updates to 3 filled, 2 empty at health=3', correct3,
+                `Filled: ${filled3}, Empty: ${empty3}`);
+            
+            // Test 5: Reduce health to 0
+            game.player.health = 0;
+            updateHealthDisplay();
+            const health0Display = document.getElementById('health').textContent;
+            const filled0 = (health0Display.match(/❤️/g) || []).length;
+            const empty0 = (health0Display.match(/🤍/g) || []).length;
+            const correct0 = filled0 === 0 && empty0 === 5;
+            addTest('Test 5: Display updates to 0 filled, 5 empty at health=0', correct0,
+                `Filled: ${filled0}, Empty: ${empty0}`);
+            
+            // Test 6: Test health=1
+            game.player.health = 1;
+            updateHealthDisplay();
+            const health1Display = document.getElementById('health').textContent;
+            const filled1 = (health1Display.match(/❤️/g) || []).length;
+            const empty1 = (health1Display.match(/🤍/g) || []).length;
+            const correct1 = filled1 === 1 && empty1 === 4;
+            addTest('Test 6: Display updates to 1 filled, 4 empty at health=1', correct1,
+                `Filled: ${filled1}, Empty: ${empty1}`);
+            
+            // Test 7: Test health=5 (max)
+            game.player.health = 5;
+            updateHealthDisplay();
+            const health5Display = document.getElementById('health').textContent;
+            const filled5 = (health5Display.match(/❤️/g) || []).length;
+            const empty5 = (health5Display.match(/🤍/g) || []).length;
+            const correct5 = filled5 === 5 && empty5 === 0;
+            addTest('Test 7: Display updates to 5 filled, 0 empty at health=5', correct5,
+                `Filled: ${filled5}, Empty: ${empty5}`);
+            
+            // Test 8: Verify DOM element is updated
+            game.player.health = 2;
+            updateHealthDisplay();
+            const domElement = document.getElementById('health');
+            const hasContent = domElement.textContent.length > 0;
+            addTest('Test 8: DOM health element is updated', hasContent,
+                `Content: "${domElement.textContent}"`);
+            
+            // Test 9: Verify health display persists after restart
+            game.player.health = 1; // artificially set to 1
+            restart(); // should reset to 5
+            const postRestartHealth = game.player.health === 5;
+            const postRestartDisplay = document.getElementById('health').textContent;
+            const postRestartCorrect = postRestartHealth && postRestartDisplay.includes('❤️❤️❤️❤️❤️');
+            addTest('Test 9: Health display updates correctly after restart()', postRestartCorrect,
+                `Health: ${game.player.health}, Display: "${postRestartDisplay}"`);
+            
+            // Test 10: Verify health display persists after playAgain
+            game.player.health = 3; // artificially set to 3
+            playAgain(); // should reset to 5
+            const postPlayAgainHealth = game.player.health === 5;
+            const postPlayAgainDisplay = document.getElementById('health').textContent;
+            const postPlayAgainCorrect = postPlayAgainHealth && postPlayAgainDisplay.includes('❤️❤️❤️❤️❤️');
+            addTest('Test 10: Health display updates correctly after playAgain()', postPlayAgainCorrect,
+                `Health: ${game.player.health}, Display: "${postPlayAgainDisplay}"`);
+            
+            // Summary
+            const passed = testResults.filter(t => t.passed).length;
+            const total = testResults.length;
+            console.log(`\n=== Test Summary ===`);
+            console.log(`Passed: ${passed}/${total}`);
+            
+            // Display results in HTML
+            const outputDiv = document.getElementById('test-output');
+            outputDiv.innerHTML = testResults.map((t, i) => `
+                <div style="margin: 10px 0; padding: 10px; background: ${t.passed ? 'rgba(0,255,0,0.1)' : 'rgba(255,0,0,0.1)'}; border-left: 3px solid ${t.passed ? '#00FF00' : '#FF0000'};">
+                    <strong style="color: ${t.passed ? '#00FF00' : '#FF0000'};">${t.passed ? '✓' : '✗'} Test ${i+1}: ${t.name}</strong>
+                    ${t.details ? `<div style="color: #CCCCCC; margin-top: 5px;">${t.details}</div>` : ''}
+                </div>
+            `).join('') + `
+                <div style="margin-top: 20px; padding: 10px; background: #1A1F3A; border: 2px solid #00FF00;">
+                    <strong>SUMMARY: ${passed}/${total} tests passed</strong>
+                </div>
+            `;
+        }
+        
+        // Run tests when page loads
+        window.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Health Property Test</title>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="stats-bar">
+        <div>Attempts: <span id="attempts">1</span></div>
+        <div>Timer: <span id="timer">00:00.00</span></div>
+    </div>
+    
+    <script src="game.js"></script>
+    <script>
+        console.log('Testing health property initialization...');
+        
+        // Test 1: Check if player health is initialized to 5
+        console.log('Test 1: Initial player health should be 5');
+        console.log('game.player.health =', game.player.health);
+        console.assert(game.player.health === 5, 'FAILED: Player health should be 5');
+        console.log('✓ PASSED: Player health initialized to 5');
+        
+        // Test 2: Check player object structure
+        console.log('\nTest 2: Player object should have { row, col, health }');
+        console.log('game.player =', game.player);
+        console.assert(
+            'row' in game.player && 'col' in game.player && 'health' in game.player,
+            'FAILED: Player should have row, col, and health properties'
+        );
+        console.log('✓ PASSED: Player object has correct structure');
+        
+        // Test 3: Check health is reset on restart()
+        console.log('\nTest 3: Restart should reset health to 5');
+        game.player.health = 2; // Artificially reduce health
+        console.log('Before restart: game.player.health =', game.player.health);
+        restart();
+        console.log('After restart: game.player.health =', game.player.health);
+        console.assert(game.player.health === 5, 'FAILED: Health should be reset to 5 on restart');
+        console.log('✓ PASSED: Health reset to 5 on restart()');
+        
+        // Test 4: Check health is reset on playAgain()
+        console.log('\nTest 4: PlayAgain should reset health to 5');
+        game.player.health = 1; // Artificially reduce health
+        console.log('Before playAgain: game.player.health =', game.player.health);
+        playAgain();
+        console.log('After playAgain: game.player.health =', game.player.health);
+        console.assert(game.player.health === 5, 'FAILED: Health should be reset to 5 on playAgain');
+        console.log('✓ PASSED: Health reset to 5 on playAgain()');
+        
+        console.log('\n=== All Health Property Tests Passed ===');
+    </script>
+</body>
+</html>

@@ -9,7 +9,8 @@ const TILE = {
     LAVA: 2,
     START: 3,
     END: 4,
-    MOVING_WALL: 5
+    MOVING_WALL: 5,
+    HEART: 6
 };
 
 // Game state constants
@@ -23,7 +24,7 @@ const GAME_STATE = {
 
 // Game configuration
 const CONFIG = {
-    GRID_SIZE: 10,
+    GRID_SIZE: 20,
     TILE_SIZE: 40,
     MOVING_WALL_INTERVAL: 750
 };
@@ -43,10 +44,14 @@ const game = {
         pressed: {}
     },
     movingWalls: [],
+    hearts: [],
     lastMoveTime: 0,
     moveDelay: 120,
     canvas: null,
-    ctx: null
+    ctx: null,
+    lastDamageSource: null,  // Track damage source for death messages
+    currentMazeIndex: 0,      // Current maze index from pool
+    previousMazeIndex: -1     // Previous maze to prevent immediate repeats
 };
 
 // ============================
@@ -54,23 +59,41 @@ const game = {
 // ============================
 
 const LEVEL = [
-    [3, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [0, 0, 0, 1, 0, 0, 0, 0, 0, 1],
-    [1, 1, 0, 1, 0, 1, 1, 1, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-    [1, 0, 1, 1, 1, 1, 0, 1, 1, 1],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 2, 2, 1, 1, 1, 0],
-    [0, 0, 0, 1, 2, 2, 0, 0, 0, 0],
-    [1, 1, 0, 1, 0, 1, 1, 1, 0, 1],
-    [1, 1, 0, 0, 0, 0, 0, 0, 0, 4]
+    [3, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+    [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+    [1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0, 2, 2, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4]
+];
+
+// Manually place hearts in the level at row 7 col 4 and row 15 col 4
+// We'll need to update the level initialization to set these
+const HEARTS_POSITIONS = [
+    { row: 7, col: 4 },
+    { row: 15, col: 4 }
 ];
 
 // Moving walls definition: [row, col, direction, maxSteps]
 // direction: 0=horizontal, 1=vertical
 const MOVING_WALLS_DEF = [
-    { row: 3, col: 7, direction: 1, maxSteps: 2 },  // Vertical moving wall
-    { row: 5, col: 8, direction: 0, maxSteps: 2 }   // Horizontal moving wall
+    { row: 7, col: 10, direction: 0, maxSteps: 3 },   // Horizontal moving wall
+    { row: 12, col: 10, direction: 1, maxSteps: 2 },  // Vertical moving wall
+    { row: 15, col: 8, direction: 0, maxSteps: 2 }    // Horizontal moving wall
 ];
 
 // ============================
@@ -79,10 +102,17 @@ const MOVING_WALLS_DEF = [
 
 function init() {
     setupCanvas();
+    
+    // Validate maze pool before starting
+    if (!validateMazePool()) {
+        console.error('Maze pool validation failed. Some mazes may be invalid.');
+    }
+    
     setupLevel();
     setupMovingWalls();
     setupEventListeners();
     validateLevel();
+    updateMazeDisplay();
     render();
 }
 
@@ -94,17 +124,38 @@ function setupCanvas() {
 }
 
 function setupLevel() {
-    if (!validateLevelStructure(LEVEL)) {
-        console.error('Invalid level structure');
+    // Select a new maze from the pool
+    const maze = selectMaze();
+    
+    if (!validateLevelStructure(maze.grid)) {
+        console.error('Invalid maze structure');
         return;
     }
 
-    game.level = LEVEL.map(row => [...row]);
+    // Copy maze grid
+    game.level = maze.grid.map(row => [...row]);
+    
+    // Initialize hearts array from maze
+    game.hearts = maze.hearts.map(h => ({...h}));
+    
+    // Initialize moving walls from maze
+    game.movingWalls = maze.moving_walls.map(def => ({
+        ...def,
+        step: 0,
+        direction_step: 1
+    }));
+    
+    // Find player start position
     game.player = findTile(TILE.START);
 
     if (!game.player) {
         console.error('No start position found');
     }
+
+    // Initialize player health to 5
+    game.player.health = 5;
+    
+    updateHealthDisplay();
 }
 
 function setupMovingWalls() {
@@ -151,16 +202,22 @@ function handleKeyDown(e) {
     const key = e.key.toUpperCase();
 
     if (key === 'W' || key === 'ARROWUP') {
+        e.preventDefault();
         handleMovement('UP');
     } else if (key === 'S' || key === 'ARROWDOWN') {
+        e.preventDefault();
         handleMovement('DOWN');
     } else if (key === 'A' || key === 'ARROWLEFT') {
+        e.preventDefault();
         handleMovement('LEFT');
     } else if (key === 'D' || key === 'ARROWRIGHT') {
+        e.preventDefault();
         handleMovement('RIGHT');
     } else if (key === 'R') {
+        e.preventDefault();
         restart();
     } else if (key === 'ESCAPE') {
+        e.preventDefault();
         togglePause();
     }
 
@@ -230,13 +287,7 @@ function canMove(row, col) {
         return false;
     }
 
-    // Check collision with moving walls
-    for (const mw of game.movingWalls) {
-        if (mw.row === row && mw.col === col) {
-            return false;
-        }
-    }
-
+    // Can move into moving wall tile - collision will be handled separately
     return true;
 }
 
@@ -246,22 +297,104 @@ function checkCollisions() {
 
     // Check lava collision
     if (tile === TILE.LAVA) {
-        kill('Burned by lava!');
+        applyDamage(1, 'lava');
         return;
     }
 
     // Check moving wall collision
     for (const mw of game.movingWalls) {
         if (mw.row === row && mw.col === col) {
-            kill('Crushed by a moving wall!');
+            // Player collided with moving wall - apply damage and bounce back
+            bouncePlayerBack(mw);
+            applyDamage(1, 'moving_wall');
             return;
         }
+    }
+
+    // Check heart collision
+    if (tile === TILE.HEART) {
+        collectHeart(row, col);
     }
 
     // Check win condition
     if (tile === TILE.END) {
         win();
     }
+}
+
+function applyDamage(amount, source) {
+    game.player.health -= amount;
+    game.lastDamageSource = source;
+    updateHealthDisplay();
+
+    // Check if health reaches 0
+    if (game.player.health <= 0) {
+        const deathMessage = source === 'lava' ? 'Burned by lava!' : 'Crushed by a moving wall!';
+        kill(deathMessage);
+    }
+}
+
+function bouncePlayerBack(wall) {
+    const { row, col } = game.player;
+    const { direction } = wall;
+    
+    let bumpRow = row;
+    let bumpCol = col;
+    
+    if (direction === 0) {
+        // Horizontal moving wall: bump UP or DOWN
+        // Determine which direction based on wall's current position relative to origin
+        const originalCol = MOVING_WALLS_DEF.find(def => 
+            def.row === wall.row && def.direction === 0
+        ).col;
+        
+        // If wall moved right, bump player down; if wall moved left, bump player up
+        if (wall.col > originalCol) {
+            // Wall moved right, bump player down
+            bumpRow = Math.min(row + 1, CONFIG.GRID_SIZE - 1);
+        } else {
+            // Wall moved left, bump player up
+            bumpRow = Math.max(row - 1, 0);
+        }
+    } else {
+        // Vertical moving wall: bump LEFT or RIGHT
+        // Determine which direction based on wall's current position relative to origin
+        const originalRow = MOVING_WALLS_DEF.find(def => 
+            def.col === wall.col && def.direction === 1
+        ).row;
+        
+        // If wall moved down, bump player right; if wall moved up, bump player left
+        if (wall.row > originalRow) {
+            // Wall moved down, bump player right
+            bumpCol = Math.min(col + 1, CONFIG.GRID_SIZE - 1);
+        } else {
+            // Wall moved up, bump player left
+            bumpCol = Math.max(col - 1, 0);
+        }
+    }
+    
+    // Move player to bumped position if it's a valid tile (not a wall or lava)
+    const bumpTile = game.level[bumpRow][bumpCol];
+    if (bumpTile !== TILE.WALL && bumpTile !== TILE.LAVA) {
+        game.player.row = bumpRow;
+        game.player.col = bumpCol;
+    }
+}
+
+function collectHeart(row, col) {
+    // Remove heart from hearts array
+    game.hearts = game.hearts.filter(h => !(h.row === row && h.col === col));
+    
+    // Increase player health (capped at 5)
+    game.player.health = Math.min(game.player.health + 1, 5);
+    
+    // Update health display
+    updateHealthDisplay();
+    
+    // Remove heart from level (replace with EMPTY)
+    game.level[row][col] = TILE.EMPTY;
+    
+    // TODO: Display "+1 Health" feedback animation
 }
 
 // ============================
@@ -382,6 +515,7 @@ function restart() {
     setupLevel();
     setupMovingWalls();
     updateTimerDisplay();
+    updateHealthDisplay();
     render();
 }
 
@@ -396,6 +530,7 @@ function playAgain() {
     setupLevel();
     setupMovingWalls();
     updateTimerDisplay();
+    updateHealthDisplay();
     render();
 }
 
@@ -458,6 +593,9 @@ function drawTiles() {
                 case TILE.END:
                     drawTile(x, y, '#FFD700', '#FFEB3B');
                     break;
+                case TILE.HEART:
+                    drawHeart(x, y);
+                    break;
             }
         }
     }
@@ -484,6 +622,36 @@ function drawLava(x, y) {
     }
 
     game.ctx.strokeStyle = '#FB5607';
+    game.ctx.lineWidth = 1;
+    game.ctx.strokeRect(x + 0.5, y + 0.5, CONFIG.TILE_SIZE - 1, CONFIG.TILE_SIZE - 1);
+}
+
+function drawHeart(x, y) {
+    // Draw golden/yellow heart tile
+    game.ctx.fillStyle = '#FFD700';
+    game.ctx.fillRect(x, y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+    
+    // Add heart animation effect (pulse)
+    const pulseIntensity = Math.sin(Date.now() / 200) * 0.3 + 0.7;
+    game.ctx.fillStyle = `rgba(255, 215, 0, ${pulseIntensity})`;
+    game.ctx.fillRect(x + 4, y + 4, CONFIG.TILE_SIZE - 8, CONFIG.TILE_SIZE - 8);
+    
+    // Draw heart symbol in the center
+    game.ctx.fillStyle = '#FF1744';
+    const cx = x + CONFIG.TILE_SIZE / 2;
+    const cy = y + CONFIG.TILE_SIZE / 2;
+    const size = 6;
+    
+    // Simple heart shape
+    game.ctx.beginPath();
+    game.ctx.moveTo(cx, cy + size);
+    game.ctx.bezierCurveTo(cx - size, cy - size/2, cx - size, cy - size, cx - size/2, cy - size);
+    game.ctx.bezierCurveTo(cx - size/2, cy - size, cx, cy, cx, cy);
+    game.ctx.bezierCurveTo(cx, cy, cx + size/2, cy - size, cx + size/2, cy - size);
+    game.ctx.bezierCurveTo(cx + size, cy - size, cx + size, cy - size/2, cx, cy + size);
+    game.ctx.fill();
+    
+    game.ctx.strokeStyle = '#FFEB3B';
     game.ctx.lineWidth = 1;
     game.ctx.strokeRect(x + 0.5, y + 0.5, CONFIG.TILE_SIZE - 1, CONFIG.TILE_SIZE - 1);
 }
@@ -562,13 +730,26 @@ function validateLevelStructure(level) {
             return false;
         }
         for (const tile of row) {
-            if (tile < 0 || tile > 5) {
+            if (tile < 0 || tile > 6) {
                 return false;
             }
         }
     }
 
     return true;
+}
+
+function selectMaze() {
+    // Select a random maze that's not the same as the previous one
+    let randomIndex = Math.floor(Math.random() * MAZE_POOL.length);
+    
+    // Ensure we don't repeat the previous maze
+    while (randomIndex === game.previousMazeIndex && MAZE_POOL.length > 1) {
+        randomIndex = Math.floor(Math.random() * MAZE_POOL.length);
+    }
+    
+    game.currentMazeIndex = randomIndex;
+    return getMazeById(randomIndex);
 }
 
 function hasStartAndEnd() {
@@ -646,6 +827,39 @@ function findTile(tileType) {
         }
     }
     return null;
+}
+
+// ============================
+// HEALTH DISPLAY
+// ============================
+
+function updateHealthDisplay() {
+    const health = game.player.health;
+    const healthElement = document.getElementById('health');
+    
+    // Build heart display: N filled hearts + (5-N) empty hearts
+    let hearts = '';
+    for (let i = 0; i < 5; i++) {
+        if (i < health) {
+            hearts += '❤️';  // Filled heart
+        } else {
+            hearts += '🤍';  // Empty heart
+        }
+    }
+    healthElement.textContent = hearts;
+}
+
+// ============================
+// MAZE DISPLAY
+// ============================
+
+function updateMazeDisplay() {
+    const mazeElement = document.getElementById('mazeCounter');
+    if (mazeElement) {
+        const totalMazes = MAZE_POOL ? MAZE_POOL.length : 1;
+        const currentMaze = game.currentMazeIndex + 1;
+        mazeElement.textContent = `Maze ${currentMaze} of ${totalMazes}`;
+    }
 }
 
 // ============================
