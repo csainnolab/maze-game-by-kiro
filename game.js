@@ -147,9 +147,14 @@ function setupLevel() {
     // Initialize hearts array from maze
     game.hearts = maze.hearts.map(h => ({...h}));
     
-    // Initialize moving walls from maze
+    // Initialize moving walls from maze — store originRow/originCol so movement is correct
     game.movingWalls = maze.moving_walls.map(def => ({
-        ...def,
+        originRow: def.row,
+        originCol: def.col,
+        row: def.row,
+        col: def.col,
+        direction: def.direction,
+        maxSteps: def.maxSteps,
         step: 0,
         direction_step: 1
     }));
@@ -303,12 +308,18 @@ function canMove(row, col) {
 
     const tile = game.level[row][col];
 
-    // Cannot move into walls or lava
-    if (tile === TILE.WALL || tile === TILE.LAVA) {
+    // Cannot move into walls only — lava and moving walls are walkable (damage on entry)
+    if (tile === TILE.WALL) {
         return false;
     }
 
-    // Can move into moving wall tile - collision will be handled separately
+    // Cannot move into a tile currently occupied by a moving wall
+    for (const mw of game.movingWalls) {
+        if (mw.row === row && mw.col === col) {
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -316,23 +327,7 @@ function checkCollisions() {
     const { row, col } = game.player;
     const tile = game.level[row][col];
 
-    // Check lava collision
-    if (tile === TILE.LAVA) {
-        applyDamage(1, 'lava');
-        return;
-    }
-
-    // Check moving wall collision
-    for (const mw of game.movingWalls) {
-        if (mw.row === row && mw.col === col) {
-            // Player collided with moving wall - apply damage and bounce back
-            bouncePlayerBack(mw);
-            applyDamage(1, 'moving_wall');
-            return;
-        }
-    }
-
-    // Check heart collision
+    // Check heart collision first (before damage checks)
     if (tile === TILE.HEART) {
         collectHeart(row, col);
     }
@@ -340,6 +335,13 @@ function checkCollisions() {
     // Check win condition
     if (tile === TILE.END) {
         win();
+        return;
+    }
+
+    // Check lava collision — player walks onto lava and takes damage
+    if (tile === TILE.LAVA) {
+        applyDamage(1, 'lava');
+        return;
     }
 }
 
@@ -357,46 +359,44 @@ function applyDamage(amount, source) {
 
 function bouncePlayerBack(wall) {
     const { row, col } = game.player;
-    const { direction } = wall;
+    const { direction, originRow, originCol } = wall;
     
     let bumpRow = row;
     let bumpCol = col;
     
     if (direction === 0) {
         // Horizontal moving wall: bump UP or DOWN
-        // Determine which direction based on wall's current position relative to origin
-        const originalCol = MOVING_WALLS_DEF.find(def => 
-            def.row === wall.row && def.direction === 0
-        ).col;
-        
-        // If wall moved right, bump player down; if wall moved left, bump player up
-        if (wall.col > originalCol) {
-            // Wall moved right, bump player down
-            bumpRow = Math.min(row + 1, CONFIG.GRID_SIZE - 1);
+        // If wall moved right (col > originCol), bump player left
+        // If wall moved left (col < originCol), bump player right
+        if (wall.col > originCol) {
+            // Wall moved right, bump player left
+            bumpCol = Math.max(col - 1, 0);
+        } else if (wall.col < originCol) {
+            // Wall moved left, bump player right
+            bumpCol = Math.min(col + 1, CONFIG.GRID_SIZE - 1);
         } else {
-            // Wall moved left, bump player up
-            bumpRow = Math.max(row - 1, 0);
+            // Wall at origin, bump perpendicular (up or down)
+            bumpRow = row > originRow ? Math.min(row + 1, CONFIG.GRID_SIZE - 1) : Math.max(row - 1, 0);
         }
     } else {
         // Vertical moving wall: bump LEFT or RIGHT
-        // Determine which direction based on wall's current position relative to origin
-        const originalRow = MOVING_WALLS_DEF.find(def => 
-            def.col === wall.col && def.direction === 1
-        ).row;
-        
-        // If wall moved down, bump player right; if wall moved up, bump player left
-        if (wall.row > originalRow) {
-            // Wall moved down, bump player right
-            bumpCol = Math.min(col + 1, CONFIG.GRID_SIZE - 1);
+        // If wall moved down (row > originRow), bump player up
+        // If wall moved up (row < originRow), bump player down
+        if (wall.row > originRow) {
+            // Wall moved down, bump player up
+            bumpRow = Math.max(row - 1, 0);
+        } else if (wall.row < originRow) {
+            // Wall moved up, bump player down
+            bumpRow = Math.min(row + 1, CONFIG.GRID_SIZE - 1);
         } else {
-            // Wall moved up, bump player left
-            bumpCol = Math.max(col - 1, 0);
+            // Wall at origin, bump perpendicular (left or right)
+            bumpCol = col > originCol ? Math.min(col + 1, CONFIG.GRID_SIZE - 1) : Math.max(col - 1, 0);
         }
     }
     
-    // Move player to bumped position if it's a valid tile (not a wall or lava)
+    // Move player to bumped position if it's a valid tile (not a wall or out of moving wall position)
     const bumpTile = game.level[bumpRow][bumpCol];
-    if (bumpTile !== TILE.WALL && bumpTile !== TILE.LAVA) {
+    if (bumpTile !== TILE.WALL) {
         game.player.row = bumpRow;
         game.player.col = bumpCol;
     }
@@ -477,23 +477,23 @@ function updateMovingWalls() {
         }
 
         if (mw.direction === 0) {
-            // Horizontal movement
-            mw.col = MOVING_WALLS_DEF.find(def => 
-                def.row === mw.row && 
-                def.col === MOVING_WALLS_DEF.find(d => d.row === mw.row && d.direction === 0).col
-            ).col + mw.step;
+            // Horizontal movement: col changes, row stays fixed
+            mw.col = mw.originCol + mw.step;
         } else {
-            // Vertical movement
-            mw.row = MOVING_WALLS_DEF.find(def => 
-                def.col === mw.col && 
-                def.direction === 1
-            ).row + mw.step;
+            // Vertical movement: row changes, col stays fixed
+            mw.row = mw.originRow + mw.step;
         }
     }
 
-    // Check if moving wall collides with player
+    // Check if any moving wall has walked into the player
     if (game.state === GAME_STATE.PLAYING) {
-        checkCollisions();
+        for (const mw of game.movingWalls) {
+            if (mw.row === game.player.row && mw.col === game.player.col) {
+                bouncePlayerBack(mw);
+                applyDamage(1, 'moving_wall');
+                break;
+            }
+        }
     }
 }
 

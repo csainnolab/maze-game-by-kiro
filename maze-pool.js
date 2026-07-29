@@ -85,277 +85,164 @@ function mulberry32(a) {
     }
 }
 
-// Create base 20x20 grid with START at (0,0) and END at (19,19)
+// Create base 20x20 grid filled entirely with walls
 function createBaseGrid() {
     const grid = [];
     for (let r = 0; r < 20; r++) {
         grid[r] = [];
         for (let c = 0; c < 20; c++) {
-            if (r === 0 && c === 0) grid[r][c] = 3; // START
-            else if (r === 19 && c === 19) grid[r][c] = 4; // END
-            else grid[r][c] = 1; // Default to WALL
+            grid[r][c] = 1; // All walls to start
         }
     }
-    return grid;
-}
-
-// Corridor-based maze generation
-function generateCorridorMaze(grid, rng) {
-    // Create horizontal and vertical corridors
-    for (let r = 1; r < 19; r += 2) {
-        for (let c = 1; c < 19; c++) {
-            grid[r][c] = 0; // EMPTY
-        }
-    }
-    
-    for (let c = 1; c < 19; c += 2) {
-        for (let r = 1; r < 19; r++) {
-            if (grid[r][c] !== 0) grid[r][c] = 0; // EMPTY
-        }
-    }
-    
-    // Add some walls for variation
-    for (let i = 0; i < 15; i++) {
-        const r = Math.floor(rng() * 18) + 1;
-        const c = Math.floor(rng() * 18) + 1;
-        if ((r !== 0 || c !== 0) && (r !== 19 || c !== 19)) {
-            grid[r][c] = 1; // Add wall
-        }
-    }
-    
-    // Ensure corridor connectivity
-    for (let r = 0; r < 20; r++) {
-        for (let c = 0; c < 20; c++) {
-            if (grid[r][c] === 3 || grid[r][c] === 4) continue;
-            if (r % 2 === 1 || c % 2 === 1) grid[r][c] = 0;
-        }
-    }
-    
-    return grid;
-}
-
-// Room-based maze generation
-function generateRoomMaze(grid, rng) {
-    // Create 5x5 rooms with walls between them
-    for (let roomR = 0; roomR < 5; roomR++) {
-        for (let roomC = 0; roomC < 5; roomC++) {
-            const baseR = roomR * 4;
-            const baseC = roomC * 4;
-            
-            // Fill room with empty space
-            for (let r = baseR + 1; r < Math.min(baseR + 4, 20); r++) {
-                for (let c = baseC + 1; c < Math.min(baseC + 4, 20); c++) {
-                    if ((r !== 0 || c !== 0) && (r !== 19 || c !== 19)) {
-                        grid[r][c] = 0;
-                    }
-                }
-            }
-        }
-    }
-    
-    // Create passages between rooms
-    for (let roomR = 0; roomR < 4; roomR++) {
-        for (let roomC = 0; roomC < 4; roomC++) {
-            // Vertical passage
-            if (rng() > 0.3) {
-                const r = roomR * 4 + 2;
-                const c = roomC * 4 + 4;
-                if (c < 20) grid[r][c] = 0;
-            }
-            // Horizontal passage
-            if (rng() > 0.3) {
-                const r = roomR * 4 + 4;
-                const c = roomC * 4 + 2;
-                if (r < 20) grid[r][c] = 0;
-            }
-        }
-    }
-    
-    return grid;
-}
-
-// Spiral-based maze generation
-function generateSpiralMaze(grid, rng) {
-    let r = 1, c = 1;
-    let dr = 0, dc = 1;
-    let steps = 1;
-    let stepCount = 0;
-    let turns = 0;
-    
-    while (r < 19 && c < 19) {
-        grid[r][c] = 0; // EMPTY
-        
-        r += dr;
-        c += dc;
-        stepCount++;
-        
-        if (stepCount === steps) {
-            stepCount = 0;
-            turns++;
-            
-            // Rotate direction: right -> down -> left -> up
-            const temp = dr;
-            dr = dc;
-            dc = -temp;
-            
-            if (turns % 2 === 0) steps++;
-        }
-        
-        if (r < 0 || r >= 20 || c < 0 || c >= 20) break;
-    }
-    
-    // Fill in surrounding space
-    for (let rr = 1; rr < 19; rr += 2) {
-        for (let cc = 1; cc < 19; cc += 2) {
-            grid[rr][cc] = 0;
-        }
-    }
-    
-    return grid;
-}
-
-// Chaotic maze generation (random paths)
-function generateChaosMaze(grid, rng) {
-    // Create multiple random paths from start to end
-    const paths = 3;
-    
-    for (let path = 0; path < paths; path++) {
-        let r = 0, c = 0;
-        
-        while (r < 19 || c < 19) {
-            grid[r][c] = 0; // EMPTY
-            
-            // Bias toward target but allow random detours
-            const moveToward = rng() > 0.4;
-            if (moveToward) {
-                if (r < 19 && rng() > 0.5) r++;
-                else if (c < 19) c++;
-            } else {
-                if (r > 0 && rng() > 0.5) r--;
-                else if (c > 0) c--;
-            }
-            
-            // Clamp to grid
-            r = Math.max(0, Math.min(19, r));
-            c = Math.max(0, Math.min(19, c));
-        }
-    }
-    
-    grid[0][0] = 3; // START
+    grid[0][0] = 3;   // START
     grid[19][19] = 4; // END
-    
     return grid;
 }
 
-// Place lava pools randomly on the maze
-function placeLava(grid, rng, count = 4) {
-    const placed = [];
-    let attempts = 0;
-    
-    while (placed.length < count && attempts < 50) {
-        const r = Math.floor(rng() * 18) + 1;
-        const c = Math.floor(rng() * 18) + 1;
-        
-        if ((r !== 0 || c !== 0) && (r !== 19 || c !== 19) && grid[r][c] === 0) {
-            // Create 2-4 cell lava pool
-            const poolSize = Math.floor(rng() * 3) + 2;
-            let poolCount = 0;
-            
-            for (let dr = -1; dr <= 1; dr++) {
-                for (let dc = -1; dc <= 1; dc++) {
-                    if (poolCount >= poolSize) break;
-                    const nr = r + dr;
-                    const nc = c + dc;
-                    if (nr >= 1 && nr < 19 && nc >= 1 && nc < 19 && grid[nr][nc] === 0) {
-                        grid[nr][nc] = 2; // LAVA
-                        poolCount++;
-                        placed.push({ r: nr, c: nc });
-                    }
-                }
-                if (poolCount >= poolSize) break;
+// Recursive backtracker maze generation (proper maze algorithm)
+// Carves passages between odd-indexed cells
+function generateMaze(seed, pattern) {
+    const rng = mulberry32(seed);
+    const grid = createBaseGrid();
+
+    // The backtracker works on a grid of "cells" at odd positions (1,3,5...17)
+    // Walls between cells are at even positions
+    const cellRows = 9; // cells at rows 1,3,5,7,9,11,13,15,17
+    const cellCols = 9;
+
+    // Track visited cells
+    const visited = Array.from({ length: cellRows }, () => Array(cellCols).fill(false));
+
+    // Carve starting from cell (0,0) which is grid position (1,1)
+    function carve(cr, cc) {
+        visited[cr][cc] = true;
+        // Open the cell itself
+        const gr = cr * 2 + 1;
+        const gc = cc * 2 + 1;
+        grid[gr][gc] = 0;
+
+        // Shuffle directions
+        const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+        for (let i = dirs.length - 1; i > 0; i--) {
+            const j = Math.floor(rng() * (i + 1));
+            [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+        }
+
+        for (const [dr, dc] of dirs) {
+            const nr = cr + dr;
+            const nc = cc + dc;
+            if (nr >= 0 && nr < cellRows && nc >= 0 && nc < cellCols && !visited[nr][nc]) {
+                // Carve wall between current cell and neighbour
+                grid[gr + dr][gc + dc] = 0;
+                carve(nr, nc);
             }
         }
-        attempts++;
+    }
+
+    carve(0, 0);
+
+    // Open grid row 0 from start to first cell, and last row to end
+    grid[0][0] = 3;   // START stays
+    grid[1][0] = 0;   // corridor from start down into maze
+    grid[18][19] = 0; // corridor from maze up to end
+    grid[19][19] = 4; // END stays
+
+    // Add extra openings based on pattern for variety and multiple paths
+    const extraPassages = pattern === 'open' ? 40 : pattern === 'medium' ? 25 : 15;
+    for (let i = 0; i < extraPassages; i++) {
+        const r = Math.floor(rng() * 18) + 1;
+        const c = Math.floor(rng() * 18) + 1;
+        if (grid[r][c] === 1 && grid[r][c] !== 3 && grid[r][c] !== 4) {
+            grid[r][c] = 0;
+        }
+    }
+
+    return grid;
+}
+
+// Corridor-based maze generation — delegates to backtracker with fewer extra passages
+function generateCorridorMaze(grid, rng) { return grid; }
+function generateRoomMaze(grid, rng) { return grid; }
+function generateSpiralMaze(grid, rng) { return grid; }
+function generateChaosMaze(grid, rng) { return grid; }
+
+// Place lava pools on corridor tiles without blocking all paths to the end
+function placeLava(grid, rng, count = 4) {
+    // Collect all open (corridor) tiles that are not START/END
+    const candidates = [];
+    for (let r = 1; r < 19; r++) {
+        for (let c = 1; c < 19; c++) {
+            if (grid[r][c] === 0) {
+                candidates.push({ r, c });
+            }
+        }
+    }
+    
+    // Shuffle candidates
+    for (let i = candidates.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+    
+    let placed = 0;
+    for (const { r, c } of candidates) {
+        if (placed >= count) break;
+        // Tentatively place lava
+        grid[r][c] = 2;
+        // Verify maze is still solvable
+        if (canSolveMaze(grid)) {
+            placed++;
+        } else {
+            // Revert — this lava would block the only path
+            grid[r][c] = 0;
+        }
     }
     
     return grid;
 }
 
-// Find empty positions for hearts (away from walls and lava)
+// Find empty positions for hearts — returns objects with { row, col }
 function getAvailablePositions(grid, count = 2) {
     const available = [];
     
     for (let r = 1; r < 19; r++) {
         for (let c = 1; c < 19; c++) {
             if (grid[r][c] === 0) {
-                available.push({ r, c });
+                available.push({ row: r, col: c });
             }
         }
     }
     
     // Shuffle and pick first count
-    available.sort(() => Math.random() - 0.5);
+    for (let i = available.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [available[i], available[j]] = [available[j], available[i]];
+    }
     return available.slice(0, count);
 }
 
 // Generate all 100+ preset mazes
 function generateMazePool() {
     const pool = [];
-    const patterns = ['corridors', 'rooms', 'spiral', 'chaos'];
     const difficulties = ['easy', 'medium', 'hard'];
-    let id = 0;
+    // Vary extra passages: 'tight' = few extras (harder), 'medium', 'open' (easier)
+    const patterns = ['tight', 'medium', 'open'];
     
-    for (let seed = 1; seed <= 105 && id < 105; seed++) {
-        for (let pIdx = 0; pIdx < patterns.length && id < 105; pIdx++) {
-            const pattern = patterns[pIdx];
-            let grid = generateMaze(seed * 1000 + pIdx, pattern);
-            
-            // Place lava
-            const lavaCounts = [3, 4, 5, 6];
-            const lavaCount = lavaCounts[Math.floor(seed % 4)];
-            grid = placeLava(grid, mulberry32(seed * 100 + pIdx), lavaCount);
-            
-            // Get heart positions
-            const hearts = getAvailablePositions(grid, 2);
-            
-            // Validate maze
-            if (canSolveMaze(grid) && hearts.length === 2) {
-                // Calculate difficulty
-                let difficulty = difficulties[Math.floor(seed % 3)];
-                
-                // Count hazards for metadata
-                let hazardCount = 0;
-                for (let r = 0; r < 20; r++) {
-                    for (let c = 0; c < 20; c++) {
-                        if (grid[r][c] === 2) hazardCount++; // Count LAVA
-                    }
-                }
-                
-                const maze = {
-                    id: id,
-                    grid: grid,
-                    moving_walls: generateMovingWalls(grid, seed),
-                    hearts: hearts,
-                    difficulty: difficulty,
-                    hazard_count: hazardCount,
-                    pattern: pattern
-                };
-                
-                pool.push(maze);
-                id++;
-            }
-        }
-    }
-    
-    // Fill in any remaining slots if needed
-    while (pool.length < 100) {
-        const seed = pool.length + 1000;
-        const pattern = patterns[pool.length % 4];
-        let grid = generateMaze(seed, pattern);
-        grid = placeLava(grid, mulberry32(seed + 1), 4 + (pool.length % 3));
+    for (let seed = 1; pool.length < 105; seed++) {
+        const pattern = patterns[seed % 3];
+        let grid = generateMaze(seed * 7 + 13, pattern);
+        
+        // Place lava — more lava on harder mazes
+        const lavaCount = 4 + (seed % 5); // 4-8 lava tiles
+        grid = placeLava(grid, mulberry32(seed * 31), lavaCount);
+        
+        // Get heart positions (must be on open corridor tiles)
         const hearts = getAvailablePositions(grid, 2);
         
+        // Validate maze is still solvable after lava placement
         if (canSolveMaze(grid) && hearts.length === 2) {
+            const difficulty = difficulties[seed % 3];
+            
             let hazardCount = 0;
             for (let r = 0; r < 20; r++) {
                 for (let c = 0; c < 20; c++) {
@@ -363,17 +250,15 @@ function generateMazePool() {
                 }
             }
             
-            const maze = {
+            pool.push({
                 id: pool.length,
                 grid: grid,
                 moving_walls: generateMovingWalls(grid, seed),
                 hearts: hearts,
-                difficulty: difficulties[pool.length % 3],
+                difficulty: difficulty,
                 hazard_count: hazardCount,
                 pattern: pattern
-            };
-            
-            pool.push(maze);
+            });
         }
     }
     
@@ -387,29 +272,48 @@ function generateMovingWalls(grid, seed) {
     const wallCount = 2 + Math.floor(rng() * 2); // 2-3 moving walls
     let attempts = 0;
     
-    while (walls.length < wallCount && attempts < 30) {
-        const r = Math.floor(rng() * 18) + 1;
-        const c = Math.floor(rng() * 18) + 1;
+    while (walls.length < wallCount && attempts < 50) {
+        const r = Math.floor(rng() * 17) + 1;
+        const c = Math.floor(rng() * 17) + 1;
         
-        // Check if position is valid (not START, END, or already a wall)
-        if ((r !== 0 || c !== 0) && (r !== 19 || c !== 19) && grid[r][c] === 0) {
+        // Only place on open corridor tiles, away from START/END
+        if (grid[r][c] === 0) {
             // Check not too close to other moving walls
             let tooClose = false;
             for (const w of walls) {
                 const dist = Math.abs(w.row - r) + Math.abs(w.col - c);
-                if (dist < 4) tooClose = true;
+                if (dist < 4) { tooClose = true; break; }
             }
             
             if (!tooClose) {
                 const direction = Math.floor(rng() * 2); // 0 = horizontal, 1 = vertical
-                const maxSteps = 2 + Math.floor(rng() * 2); // 2-3 steps
+                const maxSteps = 1 + Math.floor(rng() * 3); // 1-3 steps
                 
-                walls.push({
-                    row: r,
-                    col: c,
-                    direction: direction,
-                    maxSteps: maxSteps
-                });
+                // Verify the wall path is clear (all tiles in range must be open)
+                let pathClear = true;
+                for (let s = 1; s <= maxSteps; s++) {
+                    const nr = direction === 1 ? r + s : r;
+                    const nc = direction === 0 ? c + s : c;
+                    if (nr >= 20 || nc >= 20 || (grid[nr][nc] !== 0 && grid[nr][nc] !== 2)) {
+                        pathClear = false;
+                        break;
+                    }
+                    const nr2 = direction === 1 ? r - s : r;
+                    const nc2 = direction === 0 ? c - s : c;
+                    if (nr2 < 0 || nc2 < 0 || (grid[nr2][nc2] !== 0 && grid[nr2][nc2] !== 2)) {
+                        pathClear = false;
+                        break;
+                    }
+                }
+                
+                if (pathClear) {
+                    walls.push({
+                        row: r,
+                        col: c,
+                        direction: direction,
+                        maxSteps: maxSteps
+                    });
+                }
             }
         }
         attempts++;
