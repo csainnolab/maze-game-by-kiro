@@ -458,7 +458,7 @@ function updateTimerDisplay() {
         const sessionElapsed = Date.now() - sessionStartTime;
         const sessionTimeElement = document.getElementById('sessionTime');
         if (sessionTimeElement) {
-            sessionTimeElement.textContent = `Session: ${BestRunTracker.formatTime(sessionElapsed)}`;
+            sessionTimeElement.textContent = BestRunTracker.formatTime(sessionElapsed);
         }
     }
 }
@@ -904,9 +904,8 @@ function updateHealthDisplay() {
 function updateMazeDisplay() {
     const mazeElement = document.getElementById('mazeCounter');
     if (mazeElement) {
-        const totalMazes = MAZE_POOL ? MAZE_POOL.length : 1;
         const currentMaze = game.currentMazeIndex + 1;
-        mazeElement.textContent = `Maze ${currentMaze} of ${totalMazes}`;
+        mazeElement.textContent = currentMaze;
     }
 }
 

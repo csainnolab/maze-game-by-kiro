@@ -139,19 +139,19 @@ const BestRunTracker = {
         // Update current session stats
         const mazesElement = document.getElementById('mazesCompleted');
         if (mazesElement) {
-            mazesElement.textContent = `Mazes: ${session.mazesCompleted}`;
+            mazesElement.textContent = session.mazesCompleted;
         }
 
         const timeElement = document.getElementById('sessionTime');
         if (timeElement) {
-            timeElement.textContent = `Session: ${this.formatTime(session.totalTime)}`;
+            timeElement.textContent = this.formatTime(session.totalTime);
         }
 
         // Update best run stats if available
         if (bestRun) {
             const bestRunElement = document.getElementById('bestRunStats');
             if (bestRunElement) {
-                bestRunElement.textContent = `Best: ${bestRun.mazesCompleted} mazes in ${this.formatTime(bestRun.totalTime)}`;
+                bestRunElement.textContent = `${bestRun.mazesCompleted} / ${this.formatTime(bestRun.totalTime)}`;
             }
         }
     },
@@ -160,7 +160,7 @@ const BestRunTracker = {
     resetDisplay() {
         const mazesElement = document.getElementById('mazesCompleted');
         const timeElement = document.getElementById('sessionTime');
-        if (mazesElement) mazesElement.textContent = 'Mazes: 0';
-        if (timeElement) timeElement.textContent = 'Session: 00:00.000';
+        if (mazesElement) mazesElement.textContent = '0';
+        if (timeElement) timeElement.textContent = '00:00.000';
     }
 };

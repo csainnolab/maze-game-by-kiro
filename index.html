@@ -15,34 +15,41 @@
         </header>
 
         <main class="game-area">
-            <div class="stats-bar">
-                <div class="stat">
-                    <span class="stat-label">TIME</span>
-                    <span class="stat-value" id="timer">00:00.000</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">MAZES</span>
-                    <span class="stat-value" id="mazesCompleted">Mazes: 0</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">SESSION</span>
-                    <span class="stat-value" id="sessionTime">Session: 00:00.000</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">BEST RUN</span>
-                    <span class="stat-value" id="bestRunStats">Best: -</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">HEALTH</span>
-                    <span class="stat-value health-display" id="health">❤️❤️❤️❤️❤️</span>
-                </div>
-            </div>
-
             <section class="game-container">
+                <!-- Left sidebar: stats -->
+                <aside class="stats-panel">
+                    <div class="stat">
+                        <span class="stat-label">HEALTH</span>
+                        <span class="stat-value health-display" id="health">❤️❤️❤️❤️❤️</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">TIME</span>
+                        <span class="stat-value" id="timer">00:00.000</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">MAZE</span>
+                        <span class="stat-value" id="mazeCounter">Maze 1</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">MAZES</span>
+                        <span class="stat-value" id="mazesCompleted">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">SESSION</span>
+                        <span class="stat-value" id="sessionTime">00:00.000</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">BEST RUN</span>
+                        <span class="stat-value" id="bestRunStats">-</span>
+                    </div>
+                </aside>
+
+                <!-- Centre: canvas -->
                 <div class="canvas-wrapper">
                     <canvas id="gameCanvas"></canvas>
                 </div>
 
+                <!-- Right sidebar: controls -->
                 <aside class="controls-panel">
                     <h2 class="controls-title">Controls</h2>
                     
