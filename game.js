@@ -147,6 +147,11 @@ function setupLevel() {
     // Initialize hearts array from maze
     game.hearts = maze.hearts.map(h => ({...h}));
     
+    // Write TILE.HEART (6) into the grid at each heart position so they render and collide
+    for (const h of game.hearts) {
+        game.level[h.row][h.col] = TILE.HEART;
+    }
+    
     // Initialize moving walls from maze — store originRow/originCol so movement is correct
     game.movingWalls = maze.moving_walls.map(def => ({
         originRow: def.row,
@@ -293,7 +298,8 @@ function handleMovement(direction) {
     }
 
     if (canMove(newRow, newCol)) {
-        game.player = { row: newRow, col: newCol };
+        game.player.row = newRow;
+        game.player.col = newCol;
         game.lastMoveTime = now;
 
         checkCollisions();
